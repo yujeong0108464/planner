@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="계획표">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
+<title>내 일정 계획표</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: single phone column — D-day hero, lecture checklist, season roadmap */
+:root{
+  --bg:#eef1f4; --surface:#ffffff; --ink:#18212b; --muted:#66727f; --line:#dbe1e7;
+  --accent:#1f5fae; --accent-soft:#dfe9f6; --done:#2f8a5b; --done-soft:#e1f2e8; --warn:#c2553a;
+  --sans:"IBM Plex Sans KR",-apple-system,"Apple SD Gothic Neo",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1419; --surface:#18202a; --ink:#e7ecf1; --muted:#93a0ad; --line:#2a3542;
+  --accent:#6ea6ec; --accent-soft:#1d2d42; --done:#5cc48c; --done-soft:#17321f; --warn:#ee8a6f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1419; --surface:#18202a; --ink:#e7ecf1; --muted:#93a0ad; --line:#2a3542;
+  --accent:#6ea6ec; --accent-soft:#1d2d42; --done:#5cc48c; --done-soft:#17321f; --warn:#ee8a6f; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;-webkit-tap-highlight-color:transparent}
+.wrap{max-width:560px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:16px}
+header.top{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+header.top h1{font-size:22px;margin:0;font-weight:700;letter-spacing:-.02em}
+.today{font-family:var(--mono);font-size:13px;color:var(--muted)}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px}
+.label{font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+/* D-day */
+.dday{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.dday .big{font-family:var(--mono);font-size:56px;font-weight:600;line-height:1;letter-spacing:-.03em;color:var(--accent)}
+.dday .big small{font-size:22px;margin-left:4px;color:var(--ink)}
+.dday .meta{text-align:right;font-size:13px;color:var(--muted)}
+.dday .meta b{display:block;color:var(--ink);font-size:15px}
+.track{height:8px;border-radius:99px;background:var(--accent-soft);overflow:hidden;margin-top:14px}
+.track > i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .4s}
+.track.green{background:var(--done-soft)} .track.green > i{background:var(--done)}
+.ends{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:6px}
+/* Lecture */
+.course h2{margin:4px 0 2px;font-size:17px;letter-spacing:-.01em;text-wrap:balance}
+.course .sub{font-size:13px;color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.stat{background:var(--bg);border-radius:10px;padding:10px 12px}
+.stat .v{font-family:var(--mono);font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
+.stat .k{font-size:12px;color:var(--muted)}
+.toolbar{display:flex;justify-content:space-between;align-items:center;margin-top:16px;gap:8px;flex-wrap:wrap}
+.seg{display:inline-flex;background:var(--bg);border-radius:9px;padding:3px}
+.seg button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;padding:5px 12px;border-radius:7px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:500;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.next{font-size:13px;color:var(--muted)}
+.next b{color:var(--accent)}
+.lectures{margin-top:12px;display:flex;flex-direction:column;gap:18px}
+.part-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding-bottom:6px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.part-head b{font-size:14px}
+.part-head span{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+@media (min-width:520px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.grid li{min-width:0}
+.row{display:flex;flex-direction:column;gap:6px;width:100%;height:100%;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:inherit;font:inherit;text-align:left;padding:9px 10px;cursor:pointer;transition:background .15s,border-color .15s}
+.row:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.row .top{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.row .no{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--accent)}
+.row .t{font-size:13.5px;line-height:1.35;word-break:keep-all;overflow-wrap:anywhere}
+.row .min{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:auto}
+.row .box{flex:none;width:22px;height:22px;border-radius:7px;border:2px solid var(--line);display:grid;place-items:center;transition:background .15s,border-color .15s}
+.row .box svg{width:13px;height:13px;opacity:0;transition:opacity .15s}
+.row[aria-checked="true"]{background:var(--done-soft);border-color:transparent}
+.row[aria-checked="true"] .box{background:var(--done);border-color:var(--done)}
+.row[aria-checked="true"] .box svg{opacity:1}
+.row[aria-checked="true"] .t{color:var(--muted)}
+.row[aria-checked="true"] .no{color:var(--done)}
+.empty{padding:18px 4px;color:var(--muted);font-size:14px}
+.sync{font-size:12px;color:var(--muted);margin-top:10px}
+/* Roadmap */
+.seasons{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:10px}
+.season{border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.season.now{border-color:var(--accent);background:var(--accent-soft)}
+.season .head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.season .name{font-weight:700}
+.season .when{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.pill{font-size:11px;font-weight:700;color:var(--surface);background:var(--accent);border-radius:99px;padding:1px 8px;margin-left:6px;vertical-align:2px}
+.season ul{margin:8px 0 0;padding-left:18px;font-size:14px}
+.season li{margin:2px 0}
+.season .goal{font-size:13px;color:var(--muted);margin-top:4px}
+.exams{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column}
+.exam{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.exam:last-child{border-bottom:0}
+.exam .k{font-weight:500}
+.exam .k small{display:block;font-size:12px;color:var(--muted);font-weight:400}
+.exam .r{text-align:right;flex:none}
+.exam .v{font-family:var(--mono);font-weight:600;font-size:15px}
+.exam .d{font-family:var(--mono);font-size:12px;color:var(--accent)}
+.tag{font-size:11px;font-weight:700;border-radius:99px;padding:1px 7px;margin-left:6px;vertical-align:1px}
+.tag.ok{background:var(--done-soft);color:var(--done)}
+.tag.plan{background:var(--accent-soft);color:var(--accent)}
+.tag.tbd{background:var(--bg);color:var(--muted)}
+.note{font-size:12px;color:var(--muted);margin-top:10px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <h1>내 일정 계획표</h1>
+    <span class="today num" id="today"></span>
+  </header>
+
+  <section class="card" aria-labelledby="dd-label">
+    <div class="label" id="dd-label">교환학생 종료까지</div>
+    <div class="dday">
+      <div class="big" id="ddayNum">D-0</div>
+      <div class="meta"><b class="num">2026.12.26</b><span id="ddayWeeks"></span></div>
+    </div>
+    <div class="track" aria-hidden="true"><i id="exBar" style="width:0"></i></div>
+    <div class="ends num"><span>09.12 출국</span><span id="exPct"></span><span>12.26 종료</span></div>
+  </section>
+
+  <section class="card course" aria-labelledby="c-title">
+    <div class="label">인강 진도 · EBS</div>
+    <h2 id="c-title">2026 공인중개사 기본이론 민법 및 민사특별법</h2>
+    <div class="sub">이승현 교수 · 1차 · 전체 70강 · 강의 칸을 누르면 들은 강의로 표시돼요</div>
+    <div class="stats">
+      <div class="stat"><div class="v" id="sDone">0</div><div class="k">들은 강의</div></div>
+      <div class="stat"><div class="v" id="sTotal">70</div><div class="k">전체</div></div>
+      <div class="stat"><div class="v" id="sPct">0%</div><div class="k">진도율</div></div>
+    </div>
+    <div class="track green" aria-hidden="true"><i id="cBar" style="width:0"></i></div>
+    <div class="toolbar">
+      <div class="seg" role="group" aria-label="목록 보기">
+        <button type="button" id="fAll" aria-pressed="true">전체</button>
+        <button type="button" id="fTodo" aria-pressed="false">남은 강의</button>
+        <button type="button" id="fDone" aria-pressed="false">들은 강의</button>
+      </div>
+      <div class="next" id="nextUp"></div>
+    </div>
+    <div class="lectures" id="list"></div>
+    <div class="sync" id="sync">이 기기에 저장 중</div>
+  </section>
+
+  <section class="card" aria-labelledby="r-label">
+    <div class="label" id="r-label">1.5년 로드맵</div>
+    <ul class="exams" id="exams"></ul>
+    <ol class="seasons" id="seasons"></ol>
+    <p class="note">확정: 법학전문대학원협의회 발표 · 예정: 2027년부터 고정되는 공인중개사 시험일 기준 · 미발표: 큐넷·데이터자격검정·금융투자협회의 2027년 공고가 보통 12월 말에 나와요. (2026.11.13 기준)</p>
+  </section>
+</div>
+
+<script>
+(function(){
+  const TOTAL = 70;
+  const COURSE = "ebs-2026-civil";
+  const LS_KEY = "planner:" + COURSE;
+  const DAY = 86400000;
+
+  function midnight(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+  const today = midnight(new Date());
+  const pad = n => String(n).padStart(2,"0");
+  const days = ["일","월","화","수","목","금","토"];
+  document.getElementById("today").textContent =
+    today.getFullYear()+"."+pad(today.getMonth()+1)+"."+pad(today.getDate())+" ("+days[today.getDay()]+")";
+
+  function diff(y,m,d){ return Math.round((new Date(y,m-1,d) - today)/DAY); }
+  function dLabel(n){ return n > 0 ? "D-"+n : n === 0 ? "D-Day" : "D+"+(-n); }
+
+  // Exchange D-day
+  const left = diff(2026,12,26);
+  document.getElementById("ddayNum").innerHTML = left > 0
+    ? 'D-'+left+'<small>일</small>' : (left === 0 ? 'D-Day' : '종료');
+  document.getElementById("ddayWeeks").textContent = left > 0
+    ? "약 "+Math.floor(left/7)+"주 "+(left%7)+"일 남음" : "수고했어요!";
+  const exStart = new Date(2026,8,12), exEnd = new Date(2026,11,26);
+  const exP = Math.min(100, Math.max(0, (today-exStart)/(exEnd-exStart)*100));
+  document.getElementById("exBar").style.width = exP.toFixed(1)+"%";
+  document.getElementById("exPct").textContent = Math.round(exP)+"% 지남";
+  const EXAMS = [
+    {k:"LEET 법학적성시험", sub:"원서접수 5.26 – 6.4 · 성적발표 8.18", y:2027,m:7,d:19, st:"ok"},
+    {k:"공인중개사 1·2차 (제38회)", sub:"원서접수 8월 첫째 주", y:2027,m:10,d:30, st:"plan"},
+    {k:"화학분석기사 · 위험물산업기사", sub:"기사 1회 필기는 보통 2~3월", st:"tbd"},
+    {k:"SQLD", sub:"보통 3·5·8·11월, 연 4회", st:"tbd"},
+    {k:"투자자산운용사", sub:"연 4회 시행", st:"tbd"}
+  ];
+  const TAG = {ok:["확정","ok"], plan:["예정","plan"], tbd:["미발표","tbd"]};
+  const exEl = document.getElementById("exams");
+  EXAMS.forEach(e => {
+    const li = document.createElement("li"); li.className = "exam";
+    const date = e.y ? e.y+"."+pad(e.m)+"."+pad(e.d)+" ("+days[new Date(e.y,e.m-1,e.d).getDay()]+")" : "2027 공고 전";
+    li.innerHTML = '<div class="k"></div><div class="r"><div class="v"></div><div class="d"></div></div>';
+    const k = li.querySelector(".k"); k.textContent = e.k;
+    const t = document.createElement("span"); t.className = "tag "+TAG[e.st][1]; t.textContent = TAG[e.st][0]; k.append(t);
+    const sm = document.createElement("small"); sm.textContent = e.sub; k.append(sm);
+    li.querySelector(".v").textContent = date;
+    li.querySelector(".d").textContent = e.y ? dLabel(diff(e.y,e.m,e.d)) : "";
+    exEl.append(li);
+  });
+
+  // Roadmap
+  const SEASONS = [
+    {name:"Season 1 · 교환학생", from:[2026,9,1], to:[2026,12,31], when:"2026.09 – 12",
+      goal:"부담 없는 선행 + 토익 기초",
+      items:["공인중개사 1차 인강 완강, 기본 개념","SQLD 인강 가볍게","토익 단어장 1회독 + LC/RC 기본 강의","LEET 언어이해: 비문학 하루 30분"]},
+    {name:"Season 2 · 4학년 봄", from:[2027,1,1], to:[2027,5,31], when:"2027.01 – 05",
+      goal:"과학수사 기사 2개 취득, 리트 기출 시작",
+      items:["화학분석기사 · 위험물산업기사 필기/실기 동시 응시","중개사 2차 인강 틈틈이","3월부터 LEET 기출 주말 1회분"]},
+    {name:"Season 3 · 여름~가을", from:[2027,6,1], to:[2027,10,31], when:"2027.06 – 10",
+      goal:"LEET 응시, 토익 고득점, 중개사 동차",
+      items:["6~7월: LEET 파이널 모의고사, 7월 말 응시","7~8월: 토익 2주 간격 응시, 900+ 목표","8월: SQLD 정기시험","9~10월: 중개사 2차 암기, 10월 말 동차"]},
+    {name:"Season 4 · 초겨울", from:[2027,11,1], to:[2027,12,31], when:"2027.11 –",
+      goal:"금융 마무리",
+      items:["11월 말: 투자자산운용사 3~4주 집중 취득","토익 점수 확보 완료"]}
+  ];
+  const sEl = document.getElementById("seasons");
+  SEASONS.forEach(s => {
+    const a = new Date(s.from[0],s.from[1]-1,s.from[2]), b = new Date(s.to[0],s.to[1]-1,s.to[2]);
+    const now = today >= a && today <= b;
+    const li = document.createElement("li");
+    li.className = "season" + (now ? " now" : "");
+    li.innerHTML = '<div class="head"><span class="name"></span><span class="when"></span></div><div class="goal"></div><ul></ul>';
+    li.querySelector(".name").textContent = s.name;
+    if (now) { const p = document.createElement("span"); p.className="pill"; p.textContent="지금"; li.querySelector(".name").append(p); }
+    li.querySelector(".when").textContent = s.when;
+    li.querySelector(".goal").textContent = s.goal;
+    const ul = li.querySelector("ul");
+    s.items.forEach(t => { const x = document.createElement("li"); x.textContent = t; ul.append(x); });
+    sEl.append(li);
+  });
+
+  // Lecture checklist
+  let done = new Set();
+  let filter = "all";
+  try { const raw = localStorage.getItem(LS_KEY); if (raw) done = new Set(JSON.parse(raw)); } catch(e){}
+
+  const L = [
+    ["민법의 의의","41:54"],["법률행위의 의의","39:48"],["법률행위의 요건","43:39"],["법률행위 목적 불가능","43:16"],["사회질서위반 (제103조)","43:03"],
+    ["103조 판례","33:29"],["불공정한 법률행위","32:33"],["법률행위 해석","35:01"],["비진의 의사표시","47:29"],["통정허위표시","43:51"],
+    ["착오 1","41:50"],["착오 2","40:33"],["사기·강박","34:37"],["법률행위 대리","47:13"],["대리행위","40:21"],
+    ["표현대리","41:10"],["무권대리","44:01"],["무효","42:24"],["취소","42:38"],["조건","36:12"],
+    ["기한","37:11"],["물권총론","41:01"],["물권적 청구권 1","39:27"],["물권적 청구권 2 p.80","44:10"],["미등기 토지(건물)의 매수인(양수인) - 사례 p.84","40:10"],
+    ["등기를 요하지 않는 물권변동 p.87","41:18"],["등기 p.90","41:00"],["중간생략등기 p.136, p.91","36:30"],["점유 p.130, p.94","42:27"],["점유권 p.99","48:13"],
+    ["점유권의 효력 p.157","43:48"],["점유보호청구권 p.162","44:17"],["소유권 p.168","39:13"],["소유권의 취득 p.176","41:18"],["점유취득시효 관련 판례","41:01"],
+    ["공동 소유","36:19"],["공유물 관리 행위","40:12"],["공동 소유 판례","41:41"],["용익물권","41:55"],["특수지상권","41:42"],
+    ["법정지상권 사례","31:48"],["지역권","41:34"],["전세권 1","40:45"],["전세권 2","41:26"],["담보물권 (유치권 1)","40:29"],
+    ["유치권 2","32:46"],["저당권","44:39"],["공동 저당","33:57"],["근저당","43:02"],["계약의 종류","36:36"],
+    ["계약의 성립","37:00"],["승낙적격기간","41:44"],["동시이행의 항변권","39:31"],["제3자를 위한 계약 1","32:59"],["제3자를 위한 계약 2","37:14"],
+    ["위험부담","32:10"],["계약해제","39:44"],["해제효과","36:26"],["해제 기출문제 풀이","36:26"],["매매 계약","31:05"],
+    ["과실수취권","31:56"],["매도인의 담보책임 1 (권리하자)","38:20"],["매도인의 담보책임 2 (물건하자)","36:05"],["임대차 1","37:19"],["임대차 2","37:04"],
+    ["주택 임대차 보호법 1","39:18"],["주택 임대차 보호법 2","34:30"],["가등기담보 등에 관한 법률","32:19"],["부동산 실권리자 명의 등기에 관한 법률","35:38"],["집합건물법 (공용부분)","37:16"]
+  ];
+  const PARTS = [["민법총칙",1,21],["물권법",22,49],["계약법",50,67],["민사특별법",68,70]];
+  const secs = L.map(x => { const [m,s] = x[1].split(":").map(Number); return m*60+s; });
+  const list = document.getElementById("list");
+  const CHECK = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const rows = [], parts = [];
+  PARTS.forEach(([name,a,b]) => {
+    const sec = document.createElement("div");
+    sec.innerHTML = '<div class="part-head"><b></b><span></span></div><ol class="grid"></ol>';
+    sec.querySelector("b").textContent = name;
+    const grid = sec.querySelector("ol");
+    for (let i = a; i <= b; i++) {
+      const li = document.createElement("li");
+      li.innerHTML = '<button type="button" class="row" role="checkbox" aria-checked="false"><span class="top"><span class="no">'+i+'강</span><span class="box">'+CHECK+'</span></span><span class="t"></span><span class="min num">'+L[i-1][1]+'</span></button>';
+      li.querySelector(".t").textContent = L[i-1][0];
+      const btn = li.firstChild;
+      btn.setAttribute("aria-label", i+"강 "+L[i-1][0]);
+      btn.addEventListener("click", () => toggle(i));
+      grid.append(li);
+      rows.push({li, btn});
+    }
+    list.append(sec);
+    parts.push({sec, a, b, stat: sec.querySelector(".part-head span")});
+  });
+  const emptyEl = document.createElement("div");
+  emptyEl.className = "empty"; emptyEl.hidden = true;
+  list.append(emptyEl);
+
+  function render(){
+    let shown = 0;
+    rows.forEach((r, idx) => {
+      const n = idx+1, on = done.has(n);
+      r.btn.setAttribute("aria-checked", on ? "true" : "false");
+      const vis = filter === "all" || (filter === "done" ? on : !on);
+      r.li.hidden = !vis; if (vis) shown++;
+    });
+    parts.forEach(p => {
+      let c = 0, vis = 0;
+      for (let i = p.a; i <= p.b; i++) { if (done.has(i)) c++; if (!rows[i-1].li.hidden) vis++; }
+      p.stat.textContent = c+" / "+(p.b-p.a+1);
+      p.sec.hidden = vis === 0;
+    });
+    emptyEl.hidden = shown > 0;
+    emptyEl.textContent = filter === "done" ? "아직 들은 강의가 없어요. 목차 오른쪽 칸을 눌러 표시하세요." : "70강 모두 완강했어요!";
+    const c = done.size, pct = Math.round(c/TOTAL*1000)/10;
+    document.getElementById("sDone").textContent = c;
+    document.getElementById("sTotal").textContent = TOTAL;
+    document.getElementById("sPct").textContent = (pct % 1 ? pct.toFixed(1) : pct) + "%";
+    document.getElementById("cBar").style.width = pct + "%";
+    let next = 0; for (let i = 1; i <= TOTAL; i++) if (!done.has(i)) { next = i; break; }
+    let rem = 0; for (let i = 1; i <= TOTAL; i++) if (!done.has(i)) rem += secs[i-1];
+    const h = Math.floor(rem/3600), m = Math.round(rem%3600/60);
+    document.getElementById("nextUp").innerHTML = next ? "다음 <b>"+next+"강</b> · 남은 "+(TOTAL-c)+"강, 약 "+h+"시간 "+m+"분" : "<b>완강!</b>";
+  }
+
+  ["fAll","fTodo","fDone"].forEach(id => {
+    document.getElementById(id).addEventListener("click", () => {
+      filter = id === "fAll" ? "all" : id === "fTodo" ? "todo" : "done";
+      ["fAll","fTodo","fDone"].forEach(o => document.getElementById(o).setAttribute("aria-pressed", o === id ? "true" : "false"));
+      render();
+    });
+  });
+
+  // Persistence: private per-person doc in db, localStorage as a fast local copy
+  let docRef = null, writing = false, pending = false;
+  const syncEl = document.getElementById("sync");
+  function saveLocal(){ try { localStorage.setItem(LS_KEY, JSON.stringify([...done])); } catch(e){} }
+  async function saveRemote(){
+    if (!docRef) return;
+    if (writing) { pending = true; return; }
+    writing = true;
+    try {
+      await docRef.set({done:[...done].sort((a,b)=>a-b), total:TOTAL, updatedAt:new Date().toISOString()});
+      syncEl.textContent = "계정에 저장됨 · 다른 기기에서도 같은 진도";
+    } catch(e) { syncEl.textContent = "계정 저장 실패 · 이 기기에는 저장됨"; }
+    writing = false;
+    if (pending) { pending = false; saveRemote(); }
+  }
+  function toggle(n){
+    done.has(n) ? done.delete(n) : done.add(n);
+    render(); saveLocal(); saveRemote();
+  }
+  render();
+
+  (async () => {
+    if (!window.claude || !window.claude.use) return;
+    try {
+      const [db, user] = await Promise.all([claude.use("db"), claude.use("user")]);
+      if (!db || !user) return;
+      const id = await user.id();
+      if (!id) return;
+      const ref = db.doc("data/users/" + id + "/" + COURSE);
+      const timer = setTimeout(() => { syncEl.textContent = "계정 연결이 느려요 · 이 기기에는 저장됨"; }, 10000);
+      const snap = await ref.get();
+      clearTimeout(timer);
+      docRef = ref;
+      const data = snap.data();
+      if (data && Array.isArray(data.done)) {
+        done = new Set(data.done); render(); saveLocal();
+        syncEl.textContent = "계정에 저장됨 · 다른 기기에서도 같은 진도";
+      } else if (done.size) { saveRemote(); }
+      else { syncEl.textContent = "계정에 저장됨 · 다른 기기에서도 같은 진도"; }
+    } catch(e) { syncEl.textContent = "이 기기에 저장 중"; }
+  })();
+})();
+</script>
+</body>
+</html>
